@@ -1,0 +1,170 @@
+class SudokuGame {
+  constructor() {
+    this.timer = null;
+    this.timeElapsed = 0;
+    this.difficulties = {
+      easy: 40,
+      medium: 30,
+      hard: 20,
+      expert: 10,
+    };
+    this.sudokuBoard = document.getElementById("sudoku-board");
+    this.timerDisplay = document.getElementById("timer");
+    this.difficultySelect = document.getElementById("difficulty");
+    this.hintCount = 3;
+    this.incorrectAttempts = 0;
+    this.maxIncorrectAttempts = 3;
+
+    document.getElementById("new-game").addEventListener("click", () => this.newGame());
+    document.getElementById("validate").addEventListener("click", () => this.validate());
+    document.getElementById("reset").addEventListener("click", () => this.reset());
+    document.getElementById("hint").addEventListener("click", () => this.hint());
+
+    this.createBoard("easy");
+    this.startTimer();
+  }
+
+  startTimer() {
+    this.timer = setInterval(() => {
+      this.timeElapsed++;
+      const minutes = String(Math.floor(this.timeElapsed / 60)).padStart(2, "0");
+      const seconds = String(this.timeElapsed % 60).padStart(2, "0");
+      this.timerDisplay.textContent = `Time: ${minutes}:${seconds}`;
+    }, 1000);
+  }
+
+  stopTimer() {
+    clearInterval(this.timer);
+  }
+
+  createBoard(difficulty) {
+    this.sudokuBoard.innerHTML = "";
+    const initialCells = this.difficulties[difficulty];
+    const board = this.generateSudokuBoard(initialCells);
+
+    board.forEach((row, rowIndex) => {
+      row.forEach((cell, colIndex) => {
+        const cellElement = document.createElement("input");
+        cellElement.type = "text";
+        cellElement.maxLength = 1;
+        cellElement.classList.add("cell");
+
+        if (cell !== 0) {
+          cellElement.value = cell;
+          cellElement.disabled = true;
+          cellElement.classList.add("fixed");
+        } else {
+          cellElement.addEventListener("input", (e) => {
+            if (!/^[1-9]$/.test(e.target.value)) {
+              e.target.value = "";
+              this.incorrectAttempts++;
+              if (this.incorrectAttempts >= this.maxIncorrectAttempts) {
+                alert("Game Over! You've made too many incorrect attempts.");
+                this.reset();
+              }
+            } else {
+              this.checkValidInput(rowIndex, colIndex, parseInt(e.target.value), e.target);
+            }
+          });
+        }
+
+        this.sudokuBoard.appendChild(cellElement);
+      });
+    });
+  }
+
+  generateSudokuBoard(cellsToFill) {
+    const board = Array.from({ length: 9 }, () => Array(9).fill(0));
+    let filled = 0;
+
+    while (filled < cellsToFill) {
+      const row = Math.floor(Math.random() * 9);
+      const col = Math.floor(Math.random() * 9);
+      const value = Math.ceil(Math.random() * 9);
+
+      if (this.isValidPlacement(board, row, col, value)) {
+        board[row][col] = value;
+        filled++;
+      }
+    }
+
+    return board;
+  }
+
+  isValidPlacement(board, row, col, value) {
+    for (let i = 0; i < 9; i++) {
+      if (board[row][i] === value || board[i][col] === value) return false;
+    }
+
+    const subGridRow = Math.floor(row / 3) * 3;
+    const subGridCol = Math.floor(col / 3) * 3;
+
+    for (let r = subGridRow; r < subGridRow + 3; r++) {
+      for (let c = subGridCol; c < subGridCol + 3; c++) {
+        if (board[r][c] === value) return false;
+      }
+    }
+
+    return true;
+  }
+
+  checkValidInput(rowIndex, colIndex, value, cellElement) {
+    const board = this.generateSudokuBoard(this.difficulties[this.difficultySelect.value]);
+    if (board[rowIndex][colIndex] !== value) {
+      alert("Incorrect number. Try again!");
+      cellElement.value = "";
+      this.incorrectAttempts++;
+      if (this.incorrectAttempts >= this.maxIncorrectAttempts) {
+        alert("Game Over! You've made too many incorrect attempts.");
+        this.reset();
+      }
+    }
+  }
+
+  newGame() {
+    this.timeElapsed = 0;
+    this.stopTimer();
+    this.startTimer();
+    this.createBoard(this.difficultySelect.value);
+    this.incorrectAttempts = 0;
+  }
+
+  validate() {
+    alert("Validation logic not implemented yet!");
+  }
+
+  reset() {
+    this.timeElapsed = 0;
+    this.stopTimer();
+    this.timerDisplay.textContent = "Time: 00:00";
+    this.createBoard(this.difficultySelect.value);
+    this.incorrectAttempts = 0;
+  }
+
+  hint() {
+    if (this.hintCount > 0) {
+      this.hintCount--;
+      alert(`You have ${this.hintCount} hints left.`);
+      this.showHint();
+    } else {
+      alert("No hints left.");
+    }
+  }
+
+  showHint() {
+    const cells = Array.from(document.querySelectorAll(".cell"));
+    const emptyCells = cells.filter(cell => cell.value === "");
+    if (emptyCells.length > 0) {
+      const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      const row = Math.floor(Array.from(cells).indexOf(randomCell) / 9);
+      const col = Array.from(cells).indexOf(randomCell) % 9;
+
+      const board = this.generateSudokuBoard(this.difficulties[this.difficultySelect.value]);
+      randomCell.value = board[row][col];
+    }
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  new SudokuGame();
+});
